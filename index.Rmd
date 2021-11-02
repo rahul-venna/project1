@@ -19,15 +19,22 @@ tidy=TRUE, tidy.opts=list(width.cutoff=60), R.options=list(max.print=100))
 
 ## Data Wrangling, Exploration, Visualization
 
-### Name and EID here
+### Rahul Venna rrv534
 
 #### Introduction 
 
 Paragraph or two introducing your datasets and variables, why they are interesting to you, etc.
 
+By major and interest in career I am a Biology major in the pre-med track. As I am applying to med 
+school I found myself talking to a lot of the older kids in medical school as well as current professionals in the field. A common theme expressed by these people is the their regret on cultivating their financial literacy. This means that they really were unhappy with the fact they never took the time to understand money and how it can be manipulated in the real world. One of the methods to do so is the stock market, as seen by the great increase in retail trading. As I have picked it up myself I often find myself wishing I had a better understanding of historical trends that allow for these big wall street traders to do what they do. To maybe dip my toe into such an understanding, I took data sets regarding the movement of the S%P and compared to a common hedge, the price of oil and gas. I often hear how investing in oil and gas as it is a consumer staple is a great way to diversify away some of the risk in one's portfolio. However, I was curious to how the prices of these commodities moved with the market and whether there were any trends I could learn from. Furthermore, I plan to explore how long interest rate works in tandem with these values.
+
 ```{R}
 # read your datasets in here, e.g., with read_csv()
-
+library(tidytext)
+library(tidyverse)
+NaturalGasPrice <- read_csv("NaturalGasPriceMonth.csv")
+SPdata <- read_csv("SPdata.csv")
+SPdata <- SPdata %>% mutate_at("Date", str_replace, "-\\d\\d$", "")
 ```
 
 #### Tidying: Reshaping
@@ -35,56 +42,146 @@ Paragraph or two introducing your datasets and variables, why they are interesti
 If your datasets are tidy already, demonstrate that you can reshape data with pivot wider/longer here (e.g., untidy and then retidy). Alternatively, it may be easier to wait until the wrangling section so you can reshape your summary statistics. Note here if you are going to do this.
 
 ```{R}
-# your tidying code (if applicable; can also wait until wrangling section)
-```
 
+library(tidytext)
+library(tidyverse)
+NaturalGasPrice <- rename(NaturalGasPrice, Date = Month)
+FNaturalGasPrice <- NaturalGasPrice %>% pivot_wider(names_from = "Date", values_from = "Price")
+
+
+glimpse(NaturalGasPrice)
+```
+My data sets were already tidy, so I demonstrated the use of `pivot_wider()` on the Natural Gas Price data to show that I have the ability to do so and understand this portion. However, as my data is quite tidy I do not really use this function much.
     
 #### Joining/Merging
 
 ```{R}
-# your joining code
-
+library(tidytext)
+library(tidyverse)
+NGasvSP <- NaturalGasPrice %>% inner_join(SPdata,NaturalGasPrice, by="Date")
+NGasvSP <- NGasvSP %>% arrange(Date)
+glimpse(NGasvSP)
+NaturalGasPrice %>% left_join(SPdata,NaturalGasPrice, by="Date")
+NaturalGasPrice %>% right_join(SPdata,NaturalGasPrice, by="Date")
+NaturalGasPrice %>% anti_join(SPdata,NaturalGasPrice, by="Date")
 # your joining code
 ```
 
-Discussions of joining here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
+Initially one of the data sets described the Date column as Month so I renamed it to fit the same ID in the last chunk. The S%P data set contains 1768 unique ID's while the Natural Gas price data set contains 284 unique ID's.Since the common ID was Date and both of them were strings there was no change in the form of the data. Furthermore, I utilized an inner join so it returns only if the rows in the left table have matching keys in the right table. Since the date was now modified to be the same ID on both it returned a table containing 11 columns and 256 rows. This differs from the 2 seperate original data sets in which the S&P data set had 1768 rows with 10 columns and the Natural gas price data set had 284 rows with 2 columns. This means that 38 observations were dropped from the Natural gas data set and 1512 were dropped from the S%P data set. There were a lot of data points dropped from the S%P data set mainly because the S%P data started at a much earlier date(1887-1997). We used inner join because we didn't need S%P data that didn't have matching Gas price data as that is the variable we are trying to look deeper into as compared to the S%P data which describes the market.
+
+Other joins were used to see what data was left out and which data ID's were kept in and to confirm that the dropped ID's were from the earlier years(1887-1997) because they don't appear on the natural gas price data set.
+
 
 ####  Wrangling
 
 ```{R}
 # your wrangling code
+NGasvSP %>% slice(1:255) %>% summarize(sd(SP500),
+sd(Price), var(SP500), quantile(SP500), min(SP500), max(SP500), sd(Price),
+sd(Price), var(Price), quantile(Price), min(Price), max(Price)) 
 
-# your wrangling code
+NGasvSP %>% summarize_all(function(x) sum(is.na(x)))
 
-# your wrangling code
+NGasvSP %>% slice(37:255) %>% mutate(Sp500sd = mean(SP500), Pricesd = mean(Price)) %>% select(-Dividend, -PE10, -`Real Earnings`, -`Real Dividend`, -`Real Price`, -'Consumer Price Index',-Earnings) %>% arrange(desc('Long Interest Rate'))
+
+
 ```
+First I utilize 5 unique functions inside of summarize to get a good understanding of different metrics when applied to the SP500 data. Furthermore, I was able to see where my NA values existed(4 in earnings and 1 in Dividends) and realized that is of nowhere that is crucial to my analysis so I did not remove it.
 
-Your discussion of wrangling section here. Feel encouraged to break up into more than once code chunk and discuss each in turn.
+In terms of analysis:
+Gas is a consumer staple and thus how it changes with the market is a cool insight. This would be especially interesting to see how the volatile the price of gas is compared to the S&P500. I sliced the data so I obtained data from only the 21st century as that is a very relevant time. Since the standard deviation is a measure of the amount of variation it is what I utilized to see how the data varies. The first chunk describes the variance in the SP price to the variance in the Natural Gas price. As can be seen there is much more variance in the S&P indicating that the consumer staple of natural gas and its price is much less volatile even as the market varies.
+```{R}
+NGasvSP %>% slice(97:157) %>% summarize(sd(SP500),
+sd(Price))
+
+```
+Another interesting analysis would be to analyze these price movements during the great recession caused by the 2008 crash after the housing crisis. Throughout the year, it is known that the stock market also crashed which spurred a recession that lasted till around mid 2009. By taking a slice of the data from 2005-2010 hopefully, some trends can be studied. AS can be seen once aga8in the volatility of the price remains somewhat similar to the previous value studying the whole data set indicating that regardless of market movement the standard deviation of the Natural Gas prices do not vary too much.
+
+
+```{R}
+dollarstocents <- function(Dividend) {
+  Div <- (Dividend * 100)
+  return(Div)
+}
+
+NGasvSP %>% summarize(Dividend = dollarstocents(Dividend))
+
+```
+This function is used to exhibit knowledge on how to create your own function and use it within the data set to either mutate or summarize it for further use. However, for my analysis such a fucntion is not crucial so it is exhibited by turning the dollar value of the Dividend variable and converting it into a cent value.
+```{R}
+
+NGasvSP %>% mutate_at("PE10", as.character)
+NGasvSP %>% mutate_at("PE10", str_replace, ".\\d+$", "")
+
+```
+The PE10 had decimal places that were unessary and by using this method I was able to clean the data up for better viewing purposes. This was done by turning the PE10 dbl into characters so then it can be modified as a string. The decimal points were then replaced with a space to get the desired effect.
+
+```{R}
+
+NGasvSP <- NGasvSP %>% mutate(GasPriceDetector = ifelse(Price > 10, "Expensive", ifelse(Price <= 10 & 5 <= Price, "Fair", "Cheap")))
+
+NGasvSP %>% group_by(GasPriceDetector) %>%
+            select(-Dividend, -PE10, -`Real Earnings`, -`Real Dividend`, -`Real Price`, -'Consumer Price Index',-Earnings) %>% arrange(desc(Price))
+
+NGasvSP %>% filter(GasPriceDetector == 'Expensive') %>% summarize(Date,SP500)
+NGasvSP %>% filter(GasPriceDetector == 'Fair') %>% summarize(Date,SP500 )
+NGasvSP %>% filter(GasPriceDetector == 'Cheap') %>% summarize(Date,SP500 )
+
+
+
+```
+As can be seen this was possible by turning Natural Gas price into a categorical variable and then grouping by it for this analysis. It was turned into a categorical using ifelse() and then given bounds to create the different categories that the numeric observations can fit into. This new variable was mutated into the dataset.Furthermore, it can be noted that a categorical variable is created, the dplyr filter,group_by, select, summarize, arrange, and mutate all exist in this chunk.
+
+Furthermore, the prices can be further categorized into whether they are cheap, fair prices, or expensive. However, we are looking for times that they are either cheap or expensive and see what dates and what the SP500 data looked like at the time. AS we can see the more expensive and fair prices tended to be in more recent times. The cheaper prices were in the past. This does some have some inaccuracy due to inflation being unable to be calculated into this. However a strong takeaway is that gas prices were very expensive during 2005 and 2008 which mark Hurricane Katrina and the Crash of 2008.
+
+
+```{R}
+NGasvSP <- NGasvSP %>% mutate(interest = ifelse(`Long Interest Rate` > 4, "High", ifelse(`Long Interest Rate` <= 4 & 2 <= `Long Interest Rate`, "Medium", "Low")))
+NGasvSP %>% filter(interest == 'High') %>% summarize(Date,SP500, `Long Interest Rate`) %>% arrange(desc(`Long Interest Rate`))
+NGasvSP %>% filter(interest == 'Medium') %>% summarize(Date,SP500,  `Long Interest Rate`)
+NGasvSP %>% filter(interest == 'Low') %>% summarize(Date,SP500, `Long Interest Rate`)
+
+```
+This was done by creating a new categorical variable that test for long interest rate and groups them into high, medium, and low so they can be separately studied at their respective dates and SP500 data.
+
+Another interesting relationship that should be studied is how the Long Interest Rate relates with the SP500 data and the Natural Gas prices data set. Since higher interest rates means it costs more to borrow money, people spend less. For example, they might not buy cars, houses, and other luxury items. We have been analyzing how a consumer staple reacts while the market moves, but Long Interest Rates have a very different meanings. As can be seen the times around the Late 1990s and early 2000s as well as near the 2008 times have high interest rates which are times that people are less likely to spend less. The lowest interest rates were in 2016. 
+
+
+
+
+```{R}
+library(knitr)
+library(gt)
+CleanTable <- NGasvSP %>% group_by(interest) %>% summarize_at(c(2,3,7), .funs = list(mean = mean, sd = sd)) %>% pivot_wider()
+CleanTable %>% kable()
+
+```
 
 
 #### Visualizing
 
 ```{R}
-# your plot 1
+NGasvSP %>% ggplot(aes(x = SP500, y = `Long Interest Rate`)) + geom_point(aes(color = interest)) + geom_smooth(method =lm) + xlab("S&P 500 Value(Dollars)") + ylab("Long Interest Rate (%)") + ggtitle ("Relationship between Long Interest Rate vs. S&P 500") + scale_x_continuous() + scale_y_continuous() + theme_classic()
 ```
+As it can be seen, the interest rate values clearly have a drop off as the SP500 increases. This is seen through the line of fit created from the points. Also there is a theme that compares the levels of interest in terms of high, medium, and low. What can be garnered from this information is that there is a inverse relationship between the 2 where lower interest rates appear at higher S%P values. 
+
+
 
 Your discussion of plot 1
 
 ```{R}
-# your plot 2
+NGasvSP %>% ggplot(aes(x = `Long Interest Rate`)) + geom_density(aes(fill = GasPriceDetector), alpha = .75) + geom_density(color = 'white')  + xlab('Long Interest Rate (%)') + scale_x_continuous() + ggtitle("Density plot of the Long Interest Rate") + theme_dark() + theme(legend.position=c(.9,.8)) + geom_rug()
 ```
-
-Your discussion of plot 2
+As can be seen here there is a relatively even distribution of interest rates in general with it being slightly skewed ot having more near 2.5% and 4.5%.  This can be also confirmed with the rug plot. However, more interesting is the different Interest rate density in terms of gas price. Cheap gas prices are distrubuted relatively evenly with slughtly more towards lower interest rates. However, this distribution differs from Expensive which is densley distibuted in the middle ranges of the long interest rate(3-5%). Fair is distributed similarity to expensive, however, it is less drastic and has a few interest rate values that are higher and lower.
 
 ```{R}
-# your plot 3
+NGasvSP %>% ggplot(aes(x = interest, y = `Consumer Price Index`)) + geom_bar(aes(y = `Consumer Price Index`, fill = interest), stat = "summary", fun = mean) + geom_errorbar(stat = "summary", fun.data = mean_se) + xlab('Interest Levels') + ggtitle("Bar Plot of 3 Interest Level Values for CPI values") + scale_y_continuous(breaks = seq(0,400,25)) + theme_light()
 ```
-
-Your discussion of plot 3
+This plot shows the CPI numbers at different Interest Rate levels. CPI or the consumer price index is a good way to measure inflation. As we can see, in the high interest rate bin, the CPI numbers are between 150 and 200. However, Medium interest rates are around CPI rates of 250. Finally Low interest rates have CPI numbers greater than 250. This indicates that there is potentially higher interest rates at lower levels of inflation. Further comparisons must be made to validate this relationship/trend.
 
 #### Concluding Remarks
 
-If any!
+this was a wonderful project that allowed me to explore both myself and the world of finance. I think I can use this information to further my understanding in part 2 with the data.
 
 
 
